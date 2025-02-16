@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.lifecycleScope
 import androidx.work.*
+import com.example.syncdivisaapp.model.ExchangeRateResponse
 import com.example.syncdivisaapp.network.RetrofitClient
 import com.example.syncdivisaapp.ui.theme.SyncDivisaAPPTheme
 import com.example.syncdivisaapp.worker.ExchangeRateWorker
@@ -48,42 +49,31 @@ fun MainScreen() {
     var exchangeRate by remember { mutableStateOf("Cargando...") }
 
     LaunchedEffect(Unit) {
-        fetchExchangeRates { rate ->
-            exchangeRate = "1 USD = $rate MXN"
-        }
+        exchangeRate = fetchExchangeRates() ?: "Error al obtener datos"
     }
 
     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-        Box(modifier = Modifier.padding(innerPadding).fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+        Box(
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize(),
+            contentAlignment = androidx.compose.ui.Alignment.Center
+        ) {
             Text(text = exchangeRate, style = MaterialTheme.typography.headlineMedium)
         }
     }
 }
 
-fun fetchExchangeRates(onResult: (String) -> Unit) {
-    val call = RetrofitClient.apiService.getExchangeRates()
-
-    call.enqueue(object : retrofit2.Callback<com.example.syncdivisaapp.model.ExchangeRateResponse> {
-        override fun onResponse(
-            call: retrofit2.Call<com.example.syncdivisaapp.model.ExchangeRateResponse>,
-            response: retrofit2.Response<com.example.syncdivisaapp.model.ExchangeRateResponse>
-        ) {
-            if (response.isSuccessful) {
-                val rate = response.body()?.conversion_rates?.get("MXN") ?: "Error"
-                onResult(rate.toString())
-                Log.d("API_SUCCESS", "Datos recibidos: $rate")
-            } else {
-                Log.e("API_ERROR", "Error en la respuesta: ${response.errorBody()?.string()}")
-            }
-        }
-
-        override fun onFailure(
-            call: retrofit2.Call<com.example.syncdivisaapp.model.ExchangeRateResponse>,
-            t: Throwable
-        ) {
-            Log.e("API_FAILURE", "Fallo en la solicitud: ${t.message}")
-        }
-    })
+suspend fun fetchExchangeRates(): String? {
+    return try {
+        val response = RetrofitClient.apiService.getExchangeRates("e752ff2208ffa575854247e8")
+        val rate = response.conversion_rates["MXN"]
+        Log.d("API_SUCCESS", "Datos recibidos: $rate")
+        rate.toString()
+    } catch (e: Exception) {
+        Log.e("API_FAILURE", "Fallo en la solicitud: ${e.message}")
+        null
+    }
 }
 
 @Preview(showBackground = true)

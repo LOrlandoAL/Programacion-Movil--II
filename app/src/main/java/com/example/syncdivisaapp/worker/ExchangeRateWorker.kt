@@ -1,39 +1,39 @@
 package com.example.syncdivisaapp.worker
 
 import android.content.Context
-import android.util.Log
+import androidx.work.CoroutineWorker
 import androidx.work.Worker
 import androidx.work.WorkerParameters
+import com.example.syncdivisaapp.data.database.AppDatabase
+import com.example.syncdivisaapp.data.database.ExchangeRateEntity
+import com.example.syncdivisaapp.network.ApiService
 import com.example.syncdivisaapp.network.RetrofitClient
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
-import com.example.syncdivisaapp.model.ExchangeRateResponse
+import retrofit2.HttpException
 
-class ExchangeRateWorker(context: Context, workerParams: WorkerParameters) : Worker(context, workerParams) {
-    override fun doWork(): Result {
-        fetchExchangeRates()
-        return Result.success()
-    }
+class ExchangeRateWorker(context: Context, workerParams: WorkerParameters) : CoroutineWorker(context, workerParams) {
 
-    private fun fetchExchangeRates() {
-        val call = RetrofitClient.apiService.getExchangeRates()
+    override suspend fun doWork(): Result {
+        val db = AppDatabase.getDatabase(applicationContext)
+        val dao = db.exchangeRateDao()
 
-        call.enqueue(object : Callback<ExchangeRateResponse> {
-            override fun onResponse(call: Call<ExchangeRateResponse>, response: Response<ExchangeRateResponse>) {
-                if (response.isSuccessful) {
-                    val exchangeRates = response.body()
-                    exchangeRates?.let {
-                        Log.d("API_WORKER_SUCCESS", "Datos actualizados: ${it.conversion_rates}")
-                    }
-                } else {
-                    Log.e("API_WORKER_ERROR", "Error en la respuesta: ${response.errorBody()?.string()}")
-                }
+        return try {
+            // Hacemos la llamada a la API dentro de una coroutine
+            val response = RetrofitClient.apiService.getExchangeRates("e752ff2208ffa575854247e8")
+
+            val ratesList = response.conversion_rates.map { (currency, rate) ->
+                ExchangeRateEntity(currency = currency, rate = rate)
             }
 
-            override fun onFailure(call: Call<ExchangeRateResponse>, t: Throwable) {
-                Log.e("API_WORKER_FAILURE", "Fallo en la solicitud: ${t.message}")
-            }
-        })
+            dao.deleteAllRates() // Eliminamos los datos previos
+            dao.insertRates(ratesList) // Insertamos los nuevos datos
+
+
+            Result.success()
+        } catch (e: HttpException) {
+            Result.retry() // Reintentar si hay error HTTP
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure() // Falla si ocurre otro error
+        }
     }
 }

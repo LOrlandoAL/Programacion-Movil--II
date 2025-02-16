@@ -1,10 +1,11 @@
 package com.example.syncdivisaapp.network
 
 import com.example.syncdivisaapp.model.ExchangeRateResponse
-import retrofit2.Call
 import retrofit2.http.GET
+import retrofit2.http.Path
+import retrofit2.http.Query
 
 interface ApiService {
-    @GET("v6/e752ff2208ffa575854247e8/latest/USD")
-    fun getExchangeRates(): Call<ExchangeRateResponse>
+    @GET("{apiKey}/latest/USD")  // Asegúrate de que esta ruta es correcta
+    suspend fun getExchangeRates(@Path("apiKey") apiKey: String): ExchangeRateResponse
 }
