@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "226428260592",
+    "project_id": "notifirecompose",
+    "storage_bucket": "notifirecompose.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:226428260592:android:830335318751afe9b0b235",
+        "android_client_info": {
+          "package_name": "com.example.fcmcomposeapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAJ6iq5zGnURvq4sSDXtc6gb8P8K3rHCkQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
